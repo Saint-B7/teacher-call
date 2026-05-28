@@ -219,17 +219,21 @@ function startConnect(code) {
   myPeer.on('open', () => {
     conn = myPeer.connect(code, { reliable: true });
 
-    conn.on('open', () => {
-      dot.classList.add('on');
-      statusText.textContent = '교무실 연결됨 ✓ 선생님을 선택하세요.';
-    });
-
-    // 교무실에서 선생님 목록 수신
+    // ★ data 리스너를 open 이전에 먼저 등록해야
+    //   연결 직후 도착하는 init 메시지를 놓치지 않습니다.
     conn.on('data', (raw) => {
       try {
         const msg = JSON.parse(raw);
         if (msg.type === 'init') buildTeacherButtons(msg.teachers);
       } catch(e) {}
+    });
+
+    conn.on('open', () => {
+      dot.classList.add('on');
+      statusText.textContent = '교무실 연결됨 ✓ 선생님 목록을 불러오는 중...';
+      // 연결 완료를 receive에게 알려서 선생님 목록 전송을 요청합니다.
+      // (receive가 먼저 init을 보내는 방식 대신, index가 준비됐을 때 요청)
+      conn.send(JSON.stringify({ type: 'ready' }));
     });
 
     conn.on('error', () => {
