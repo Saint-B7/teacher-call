@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <!--
-  [교무실 밖 태블릿용] index.html
+  [교무실 밖 태블릿용] index.html — 키오스크 스타일
   • GitHub Pages에 올려 학생 태블릿 브라우저 홈화면에 등록해두면 됩니다.
-  • URL에 ?code=... 가 있으면 자동 연결, 없으면 QR/코드 입력 화면을 표시합니다.
-  • 호출 전송 후 자동으로 초기화되어 다음 학생이 바로 사용할 수 있습니다.
+  • URL에 ?code=... 가 있으면 자동 연결, 없으면 코드 입력 화면을 표시합니다.
+  • 호출 전송 후 자동 초기화되어 다음 학생이 바로 사용할 수 있습니다.
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>교무실 호출</title>
+
+<!-- PeerJS: jsdelivr(1순위) → unpkg(2순위) 폴백 -->
 <script>
 (function(){
   function loadScript(url,ok,fail){var s=document.createElement('script');s.src=url;s.onload=ok;s.onerror=fail;document.head.appendChild(s);}
@@ -25,101 +27,205 @@
     });
 })();
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Gowun+Batang:wght@700&display=swap" rel="stylesheet">
+
+<!-- Pretendard 폰트: 한국어 디지털 UI 최적화 산세리프 (오픈소스) -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+
 <style>
+  /* ────── 색상 토큰 ────── */
   :root{
-    --bg:#f5f2eb;--card:#fff;--ink:#28251f;--muted:#9a9288;
-    --line:#e4ddd0;--accent:#c0623f;--accent-soft:#fdf0eb;--ok:#4e7a55;--r:20px;
+    --bg:#f5f2eb; --card:#fff; --ink:#28251f; --muted:#9a9288;
+    --line:#e4ddd0; --accent:#c0623f; --accent-soft:#fdf0eb; --ok:#4e7a55;
+    --r-lg:24px; --r-md:16px; --r-sm:12px;
   }
   [data-dark]{
-    --bg:#1b1916;--card:#252220;--ink:#ede8df;--muted:#8a847a;
-    --line:#3a342c;--accent:#d98060;--accent-soft:#2e1e14;--ok:#80ae86;
+    --bg:#1b1916; --card:#252220; --ink:#ede8df; --muted:#8a847a;
+    --line:#3a342c; --accent:#d98060; --accent-soft:#2e1e14; --ok:#80ae86;
   }
+
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  body{margin:0;min-height:100dvh;background:var(--bg);color:var(--ink);
-    font-family:'Gowun Dodum',sans-serif;
+  html,body{margin:0;padding:0;min-height:100dvh;}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif;
+    font-weight:500;
+    letter-spacing:-0.01em;
     display:flex;flex-direction:column;align-items:center;
-    padding:24px 16px 56px;transition:background .3s,color .3s;}
+    padding:32px 24px 60px;
+    transition:background .3s,color .3s;
+  }
 
-  header{width:100%;max-width:500px;
-    display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}
-  h1{font-family:'Gowun Batang',serif;font-size:1.4rem;margin:0;line-height:1.3;}
-  h1 small{display:block;font-family:'Gowun Dodum',sans-serif;font-size:.76rem;
-    color:var(--muted);font-weight:400;margin-top:2px;}
-  .theme-btn{border:1px solid var(--line);background:var(--card);color:var(--ink);
-    border-radius:999px;padding:7px 12px;cursor:pointer;font-family:inherit;font-size:.78rem;flex-shrink:0;}
+  /* ────── 헤더 ────── */
+  header{
+    width:100%;max-width:640px;
+    display:flex;justify-content:space-between;align-items:flex-start;
+    margin-bottom:28px;
+  }
+  h1{
+    font-size:1.8rem;font-weight:800;margin:0;line-height:1.2;
+    letter-spacing:-0.03em;
+  }
+  h1 small{
+    display:block;font-size:.92rem;font-weight:500;
+    color:var(--muted);margin-top:4px;letter-spacing:-0.01em;
+  }
+  .theme-btn{
+    border:1.5px solid var(--line);background:var(--card);color:var(--ink);
+    border-radius:999px;padding:10px 16px;cursor:pointer;
+    font-family:inherit;font-size:.88rem;font-weight:600;flex-shrink:0;
+    transition:.15s;
+  }
+  .theme-btn:active{transform:scale(.95);}
 
-  .card{width:100%;max-width:500px;background:var(--card);
-    border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-bottom:12px;}
-  .step-label{font-size:.78rem;color:var(--accent);font-weight:bold;
-    margin-bottom:10px;letter-spacing:.03em;}
+  /* ────── 카드 ────── */
+  .card{
+    width:100%;max-width:640px;
+    background:var(--card);border:1px solid var(--line);
+    border-radius:var(--r-lg);padding:28px;margin-bottom:14px;
+  }
 
-  /* 코드 입력 */
-  .row{display:flex;gap:8px;}
-  input[type=text]{flex:1;padding:12px 12px;border:1px solid var(--line);border-radius:11px;
-    background:var(--bg);color:var(--ink);font-family:inherit;
-    font-size:1.05rem;letter-spacing:.05em;}
-  input[type=text]:focus{outline:2px solid var(--accent);}
-  .btn-connect{padding:12px 16px;background:var(--accent);color:#fff;
-    border:none;border-radius:11px;font-family:inherit;font-size:.95rem;
-    cursor:pointer;font-weight:bold;white-space:nowrap;transition:.15s;}
+  /* ────── STEP 라벨 ────── */
+  .step-label{
+    display:inline-block;
+    font-size:.82rem;color:var(--accent);font-weight:700;
+    margin-bottom:14px;letter-spacing:.06em;text-transform:uppercase;
+    padding:4px 12px;background:var(--accent-soft);border-radius:999px;
+  }
+
+  /* ────── STEP 1: 코드 입력 (작은 영역) ────── */
+  .row{display:flex;gap:10px;}
+  input[type=text]{
+    flex:1;padding:18px 18px;border:1.5px solid var(--line);
+    border-radius:var(--r-sm);
+    background:var(--bg);color:var(--ink);
+    font-family:inherit;font-weight:600;
+    font-size:1.15rem;letter-spacing:.04em;
+  }
+  input[type=text]:focus{outline:none;border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-soft);}
+  .btn-connect{
+    padding:18px 28px;background:var(--accent);color:#fff;
+    border:none;border-radius:var(--r-sm);
+    font-family:inherit;font-size:1.05rem;font-weight:700;
+    cursor:pointer;letter-spacing:-0.01em;
+    white-space:nowrap;transition:.15s;
+  }
   .btn-connect:active{transform:scale(.96);}
   .btn-connect:disabled{opacity:.4;cursor:not-allowed;}
 
-  /* 상태 */
-  .status{display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--muted);margin-top:11px;}
-  .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:.3s;}
-  .dot.on{background:var(--ok);box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 22%,transparent);}
+  /* ────── 연결 상태 ────── */
+  .status{display:flex;align-items:center;gap:10px;font-size:.95rem;
+    color:var(--muted);margin-top:14px;font-weight:500;}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--muted);
+    flex-shrink:0;transition:.3s;}
+  .dot.on{background:var(--ok);
+    box-shadow:0 0 0 5px color-mix(in srgb,var(--ok) 22%,transparent);}
 
-  /* 선생님 버튼 */
-  .teacher-grid{display:flex;flex-wrap:wrap;gap:9px;}
-  .teacher-btn{padding:12px 16px;border:1.5px solid var(--line);background:var(--card);
-    border-radius:12px;cursor:pointer;font-family:inherit;font-size:.95rem;
-    color:var(--ink);font-weight:bold;transition:.15s;}
-  .teacher-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
-  .teacher-btn.selected{border-color:var(--accent);background:var(--accent);color:#fff;}
-  .teacher-btn:active{transform:scale(.96);}
+  /* ════════════════════════════════════════════════════
+     ★ STEP 2: 선생님 명단 - 키오스크 사이즈 (크게)
+  ════════════════════════════════════════════════════ */
+  #cardTeacher .step-label{margin-bottom:18px;}
+  .teacher-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:14px;
+  }
+  .teacher-btn{
+    padding:24px 20px;
+    border:2px solid var(--line);background:var(--card);
+    border-radius:var(--r-md);cursor:pointer;
+    font-family:inherit;
+    font-size:1.55rem;        /* 키오스크 핵심: 큰 글자 */
+    font-weight:700;
+    color:var(--ink);letter-spacing:-0.02em;
+    transition:.15s;
+    min-height:84px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .teacher-btn:hover{border-color:var(--accent);color:var(--accent);
+    background:var(--accent-soft);}
+  .teacher-btn.selected{
+    border-color:var(--accent);background:var(--accent);color:#fff;
+    box-shadow:0 6px 24px color-mix(in srgb,var(--accent) 35%,transparent);
+  }
+  .teacher-btn:active{transform:scale(.97);}
 
-  /* 호출 항목 */
-  .call-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .call-btn{position:relative;overflow:hidden;height:100px;
-    border:1.5px solid var(--line);background:var(--card);border-radius:15px;
-    cursor:pointer;font-family:inherit;color:var(--ink);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
-    transition:.15s;}
-  .call-btn .icon{font-size:1.8rem;line-height:1;}
-  .call-btn .lbl{font-size:.92rem;font-weight:bold;}
-  .call-btn:not(:disabled):hover{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
-  .call-btn:not(:disabled):active{transform:scale(.96);}
+  /* ════════════════════════════════════════════════════
+     ★ STEP 3: 호출 목적 - 키오스크 사이즈 (크게)
+  ════════════════════════════════════════════════════ */
+  .call-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:14px;
+  }
+  .call-btn{
+    position:relative;overflow:hidden;
+    height:148px;                /* 키오스크 핵심: 큰 버튼 */
+    border:2px solid var(--line);background:var(--card);
+    border-radius:var(--r-md);cursor:pointer;
+    font-family:inherit;color:var(--ink);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:10px;transition:.15s;
+  }
+  .call-btn .icon{font-size:2.6rem;line-height:1;}    /* 큰 아이콘 */
+  .call-btn .lbl{font-size:1.3rem;font-weight:700;    /* 큰 라벨 */
+    letter-spacing:-0.02em;}
+  .call-btn:not(:disabled):hover{
+    border-color:var(--accent);background:var(--accent-soft);color:var(--accent);
+  }
+  .call-btn:not(:disabled):active{transform:scale(.97);}
   .call-btn:disabled{opacity:.3;cursor:not-allowed;}
+
+  /* 잔물결 효과 */
   .ripple{position:absolute;border-radius:50%;background:var(--accent);
-    opacity:.18;transform:scale(0);animation:rpl .5s linear;pointer-events:none;}
+    opacity:.18;transform:scale(0);animation:rpl .55s linear;pointer-events:none;}
   @keyframes rpl{to{transform:scale(4);opacity:0;}}
 
-  /* 전송 완료 + 초기화 카운트다운 */
-  .sent-msg{margin-top:14px;padding:14px;text-align:center;
+  /* ────── 전송 완료 메시지 ────── */
+  .sent-msg{
+    margin-top:18px;padding:20px;text-align:center;
     background:color-mix(in srgb,var(--ok) 12%,transparent);
-    border:1px solid color-mix(in srgb,var(--ok) 30%,transparent);
-    border-radius:11px;color:var(--ok);font-weight:bold;font-size:.93rem;
-    opacity:0;transition:.3s;}
+    border:1.5px solid color-mix(in srgb,var(--ok) 32%,transparent);
+    border-radius:var(--r-md);color:var(--ok);
+    font-weight:700;font-size:1.15rem;letter-spacing:-0.01em;
+    opacity:0;transition:.3s;
+  }
   .sent-msg.show{opacity:1;}
 
-  /* 초기화 버튼 */
-  .btn-reset{width:100%;margin-top:10px;padding:11px;
+  /* ────── 초기화 버튼 ────── */
+  .btn-reset{
+    width:100%;margin-top:12px;padding:16px;
     background:var(--bg);color:var(--muted);
-    border:1px solid var(--line);border-radius:11px;
-    font-family:inherit;font-size:.88rem;cursor:pointer;}
+    border:1.5px solid var(--line);border-radius:var(--r-md);
+    font-family:inherit;font-size:1rem;font-weight:600;
+    cursor:pointer;transition:.15s;
+  }
   .btn-reset:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-reset:active{transform:scale(.98);}
 
-  /* 토스트 */
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);
-    background:var(--ink);color:var(--bg);padding:10px 20px;border-radius:999px;
-    font-size:.84rem;font-weight:bold;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap;}
+  /* ────── 토스트 ────── */
+  .toast{
+    position:fixed;bottom:28px;left:50%;
+    transform:translateX(-50%) translateY(14px);
+    background:var(--ink);color:var(--bg);
+    padding:14px 26px;border-radius:999px;
+    font-size:.95rem;font-weight:600;opacity:0;transition:.25s;
+    pointer-events:none;white-space:nowrap;
+    box-shadow:0 12px 32px rgba(0,0,0,.18);
+  }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-  .hint{font-size:.79rem;color:var(--muted);line-height:1.75;margin:9px 0 0;}
+  .hint{font-size:.92rem;color:var(--muted);line-height:1.7;
+    margin:12px 0 0;font-weight:500;}
   .hidden{display:none!important;}
+
+  /* ────── 카드 등장 애니메이션 ────── */
+  .card{animation:cardIn .4s cubic-bezier(.16,1,.3,1) backwards;}
+  @keyframes cardIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+
+  /* 태블릿 세로 모드 최적화 */
+  @media(min-width:601px){
+    body{padding-top:48px;}
+    .card{padding:32px;}
+  }
 </style>
 </head>
 <body>
@@ -131,7 +237,7 @@
 
 <!-- STEP 1: 코드 입력 -->
 <div class="card" id="cardConnect">
-  <div class="step-label">STEP 1 — 호출 코드 입력</div>
+  <span class="step-label">STEP 1 · 호출 코드 입력</span>
   <div class="row">
     <input type="text" id="codeInput" placeholder="예: room-3a7f"
       autocomplete="off" autocorrect="off" spellcheck="false"/>
@@ -142,20 +248,20 @@
     <span id="statusText">호출 코드를 입력하고 연결하세요.</span>
   </div>
   <p class="hint">
-    호출 코드는 교무실 안 태블릿(수신 화면)에 크게 표시되어 있습니다.<br>
-    QR 코드가 있다면 카메라 앱으로 스캔하면 자동 연결됩니다.
+    교무실 안 태블릿(수신 화면)에 크게 표시된 코드를 입력하거나,<br>
+    QR 코드가 있다면 카메라로 스캔하면 자동 연결됩니다.
   </p>
 </div>
 
-<!-- STEP 2: 선생님 선택 -->
+<!-- STEP 2: 선생님 명단 (키오스크 사이즈) -->
 <div class="card hidden" id="cardTeacher">
-  <div class="step-label">STEP 2 — 선생님 선택</div>
+  <span class="step-label">STEP 2 · 선생님 선택</span>
   <div class="teacher-grid" id="teacherGrid"></div>
 </div>
 
-<!-- STEP 3: 호출 항목 선택 -->
+<!-- STEP 3: 호출 목적 (키오스크 사이즈) -->
 <div class="card hidden" id="cardCall">
-  <div class="step-label">STEP 3 — 호출 항목 선택</div>
+  <span class="step-label">STEP 3 · 호출 목적 선택</span>
   <div class="call-grid">
     <button class="call-btn" data-item="상담"    disabled><span class="icon">💬</span><span class="lbl">상담</span></button>
     <button class="call-btn" data-item="서류 제출" disabled><span class="icon">📄</span><span class="lbl">서류 제출</span></button>
@@ -165,7 +271,6 @@
     <button class="call-btn" data-item="기타"    disabled><span class="icon">📢</span><span class="lbl">기타</span></button>
   </div>
   <div class="sent-msg" id="sentMsg"></div>
-  <!-- 호출 후 다음 학생이 쓸 수 있도록 초기화 버튼 -->
   <button class="btn-reset hidden" id="resetBtn">↩ 처음으로 돌아가기 (다음 학생)</button>
 </div>
 
@@ -231,8 +336,7 @@ function startConnect(code) {
     conn.on('open', () => {
       dot.classList.add('on');
       statusText.textContent = '교무실 연결됨 ✓ 선생님 목록을 불러오는 중...';
-      // 연결 완료를 receive에게 알려서 선생님 목록 전송을 요청합니다.
-      // (receive가 먼저 init을 보내는 방식 대신, index가 준비됐을 때 요청)
+      // 연결 완료를 receive에게 알려서 선생님 목록 전송을 요청
       conn.send(JSON.stringify({ type: 'ready' }));
     });
 
@@ -262,7 +366,7 @@ connectBtn.addEventListener('click', () => {
 codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') connectBtn.click(); });
 
 /* ═══════════════════════════════════════════
-   선생님 목록 버튼 생성
+   선생님 목록 버튼 생성 (키오스크 사이즈)
 ═══════════════════════════════════════════ */
 function buildTeacherButtons(teachers) {
   const grid = document.getElementById('teacherGrid');
@@ -277,12 +381,14 @@ function buildTeacherButtons(teachers) {
       selectedTeacher = name;
       document.getElementById('cardCall').classList.remove('hidden');
       document.querySelectorAll('.call-btn').forEach(b => b.disabled = false);
-      // 호출 항목 카드로 부드럽게 스크롤
       document.getElementById('cardCall').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
     grid.appendChild(btn);
   });
   document.getElementById('cardTeacher').classList.remove('hidden');
+  // 연결 후 STEP 1 카드는 접어두기 (공간 확보)
+  // 단, 코드 입력 카드는 남겨두되 status는 그대로 두는 게 일관성 있음.
+  statusText.textContent = '연결됨 ✓ 선생님을 선택하세요.';
 }
 
 /* ═══════════════════════════════════════════
@@ -308,22 +414,20 @@ document.querySelectorAll('.call-btn').forEach(btn => {
     // 교무실로 전송
     conn.send(JSON.stringify({ type: 'call', teacher: selectedTeacher, item: btn.dataset.item }));
 
-    // 완료 메시지 표시
     sentMsg.textContent = `${selectedTeacher} 선생님께 '${btn.dataset.item}' 호출을 보냈습니다 ✓`;
     sentMsg.classList.add('show');
     resetBtn.classList.remove('hidden');
 
-    // 모든 호출 버튼 비활성화 (중복 전송 방지)
+    // 중복 전송 방지
     document.querySelectorAll('.call-btn').forEach(b => b.disabled = true);
 
-    // 8초 후 자동으로 선생님 선택 초기화 (다음 학생 대비)
-    // 연결은 유지되므로 코드 재입력 불필요
+    // 8초 후 자동 초기화 (다음 학생 대비)
     if (sentTimer) clearTimeout(sentTimer);
     sentTimer = setTimeout(() => resetToTeacherSelect(), 8000);
   });
 });
 
-// 초기화: 선생님 선택 단계로 되돌리기 (연결은 유지)
+// 선생님 선택 단계로 되돌리기 (연결은 유지)
 function resetToTeacherSelect() {
   if (sentTimer) { clearTimeout(sentTimer); sentTimer = null; }
   selectedTeacher = null;
@@ -332,7 +436,6 @@ function resetToTeacherSelect() {
   document.getElementById('cardCall').classList.add('hidden');
   document.querySelectorAll('.teacher-btn').forEach(b => b.classList.remove('selected'));
   document.querySelectorAll('.call-btn').forEach(b => b.disabled = false);
-  // 선생님 선택 카드로 스크롤
   document.getElementById('cardTeacher').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
@@ -343,12 +446,10 @@ resetBtn.addEventListener('click', () => {
 
 /* ═══════════════════════════════════════════
    URL 파라미터 자동 연결
-   (receive.html 이 만드는 링크: index.html?code=room-xxxx)
 ═══════════════════════════════════════════ */
 const autoCode = new URLSearchParams(location.search).get('code');
 if (autoCode) {
   codeInput.value = autoCode;
-  // PeerJS 비동기 로드 대기 후 자동 연결
   let waited = 0;
   const tryAuto = setInterval(() => {
     waited += 200;
