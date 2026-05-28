@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<!--
+  [학생용 호출 화면] index.html
+  ─────────────────────────────────────────────
+  • GitHub Pages에 올려두면 학생이 스마트폰으로 URL 접속 가능합니다.
+  • 교무실 선생님이 receive.html을 열면 생기는 "호출 코드"를 입력하고
+    원하는 항목 버튼을 누르면 교무실 PC에 음성 알림이 전달됩니다.
+  • 서버·회원가입·설치 없이 브라우저만으로 동작합니다.
+-->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>교무실 호출</title>
+<!-- PeerJS: 두 기기를 중간 서버 없이 직접 연결해 주는 무료 라이브러리 -->
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Gowun+Batang:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f2eb;
+    --card: #ffffff;
+    --ink: #28251f;
+    --muted: #9a9288;
+    --line: #e4ddd0;
+    --accent: #c0623f;
+    --accent-soft: #fdf0eb;
+    --ok: #4e7a55;
+    --radius: 20px;
+  }
+  [data-dark] {
+    --bg: #1b1916;
+    --card: #252220;
+    --ink: #ede8df;
+    --muted: #8a847a;
+    --line: #3a342c;
+    --accent: #d98060;
+    --accent-soft: #2e1e14;
+    --ok: #80ae86;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; min-height: 100dvh;
+    background: var(--bg); color: var(--ink);
+    font-family: 'Gowun Dodum', sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 28px 16px 60px;
+    transition: background .3s, color .3s;
+  }
+
+  /* 상단 헤더 */
+  header {
+    width: 100%; max-width: 480px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  h1 { font-family:'Gowun Batang',serif; font-size:1.45rem; margin:0; line-height:1.3; }
+  h1 small { display:block; font-family:'Gowun Dodum',sans-serif; font-size:.8rem; color:var(--muted); font-weight:400; margin-top:3px; }
+  .theme-btn {
+    flex-shrink:0; border:1px solid var(--line); background:var(--card);
+    color:var(--ink); border-radius:999px; padding:8px 14px;
+    cursor:pointer; font-family:inherit; font-size:.82rem; margin-top:2px;
+  }
+
+  /* 카드 */
+  .card {
+    width:100%; max-width:480px;
+    background:var(--card); border:1px solid var(--line);
+    border-radius:var(--radius); padding:22px;
+    margin-bottom:14px;
+  }
+  .card h2 { font-family:'Gowun Batang',serif; font-size:1rem; margin:0 0 16px; }
+
+  /* 코드 입력 */
+  .code-row { display:flex; gap:10px; }
+  input {
+    flex:1; padding:13px 14px;
+    border:1px solid var(--line); border-radius:12px;
+    background:var(--bg); color:var(--ink);
+    font-family:inherit; font-size:1.05rem; letter-spacing:.05em;
+  }
+  input:focus { outline:2px solid var(--accent); }
+
+  /* 연결 버튼 */
+  .btn-connect {
+    padding:13px 18px; background:var(--accent); color:#fff;
+    border:none; border-radius:12px; font-family:inherit; font-size:1rem;
+    cursor:pointer; font-weight:bold; transition:.15s; white-space:nowrap;
+  }
+  .btn-connect:active { transform:scale(.96); }
+
+  /* 상태 표시 */
+  .status { display:flex; align-items:center; gap:9px; font-size:.88rem; color:var(--muted); margin-top:14px; }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--muted); flex-shrink:0; transition:.3s; }
+  .dot.on { background:var(--ok); box-shadow:0 0 0 4px color-mix(in srgb, var(--ok) 22%, transparent); }
+
+  /* 호출 버튼 그리드 */
+  .grid {
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:12px; margin-top:6px;
+  }
+  .call-btn {
+    position:relative; overflow:hidden;
+    padding:0; height:100px;
+    border:1.5px solid var(--line); background:var(--card);
+    border-radius:16px; cursor:pointer; font-family:inherit;
+    color:var(--ink); transition:.15s;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  }
+  .call-btn .icon { font-size:1.8rem; line-height:1; }
+  .call-btn .label { font-size:.95rem; font-weight:bold; }
+  .call-btn:not(:disabled):hover { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+  .call-btn:not(:disabled):active { transform:scale(.96); }
+  .call-btn:disabled { opacity:.35; cursor:not-allowed; }
+
+  /* 눌렸을 때 잔물결 효과 */
+  .call-btn .ripple {
+    position:absolute; border-radius:50%;
+    background:var(--accent); opacity:.18;
+    transform:scale(0); animation:ripple .5s linear;
+    pointer-events:none;
+  }
+  @keyframes ripple { to { transform:scale(4); opacity:0; } }
+
+  /* 전송 완료 메시지 */
+  .sent-msg {
+    margin-top:16px; padding:14px; text-align:center;
+    background:color-mix(in srgb, var(--ok) 12%, transparent);
+    border:1px solid color-mix(in srgb, var(--ok) 30%, transparent);
+    border-radius:12px; color:var(--ok); font-weight:bold;
+    font-size:.95rem; opacity:0; transition:.3s;
+  }
+  .sent-msg.show { opacity:1; }
+
+  .hint { font-size:.82rem; color:var(--muted); line-height:1.75; margin:12px 0 0; }
+
+  /* 하단 고정 토스트 */
+  .toast {
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(10px);
+    background:var(--ink); color:var(--bg);
+    padding:12px 22px; border-radius:999px;
+    font-size:.88rem; font-weight:bold;
+    opacity:0; transition:.25s; pointer-events:none; white-space:nowrap;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>교무실 호출<small>시험 기간 교무실 호출 서비스</small></h1>
+  <button class="theme-btn" id="themeBtn">🌙 다크</button>
+</header>
+
+<!-- 연결 카드 -->
+<div class="card" id="connectCard">
+  <h2>📟 호출 코드 입력</h2>
+  <div class="code-row">
+    <input id="codeInput" placeholder="예: room-3a7f" autocomplete="off" autocorrect="off" spellcheck="false" />
+    <button class="btn-connect" id="connectBtn">연결</button>
+  </div>
+  <div class="status">
+    <span class="dot" id="dot"></span>
+    <span id="statusText">호출 코드를 입력하고 연결하세요.</span>
+  </div>
+  <p class="hint">호출 코드는 교무실 화면(receive.html)에 표시됩니다.<br>코드를 입력하면 교무실 선생님께 직접 연결됩니다.</p>
+</div>
+
+<!-- 호출 버튼 카드 -->
+<div class="card hidden" id="callCard">
+  <h2>🔔 호출 항목 선택</h2>
+  <div class="grid">
+    <button class="call-btn" data-item="상담" data-icon="💬" disabled>
+      <span class="icon">💬</span><span class="label">상담</span>
+    </button>
+    <button class="call-btn" data-item="서류 제출" data-icon="📄" disabled>
+      <span class="icon">📄</span><span class="label">서류 제출</span>
+    </button>
+    <button class="call-btn" data-item="출석 확인" data-icon="✅" disabled>
+      <span class="icon">✅</span><span class="label">출석 확인</span>
+    </button>
+    <button class="call-btn" data-item="질문" data-icon="❓" disabled>
+      <span class="icon">❓</span><span class="label">질문</span>
+    </button>
+    <button class="call-btn" data-item="서명" data-icon="✍️" disabled>
+      <span class="icon">✍️</span><span class="label">서명</span>
+    </button>
+    <button class="call-btn" data-item="기타" data-icon="📢" disabled>
+      <span class="icon">📢</span><span class="label">기타</span>
+    </button>
+  </div>
+  <div class="sent-msg" id="sentMsg"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ─────────────────────────────────────────
+   다크모드 토글
+───────────────────────────────────────── */
+const themeBtn = document.getElementById('themeBtn');
+themeBtn.addEventListener('click', () => {
+  const on = document.body.hasAttribute('data-dark');
+  if (on) { document.body.removeAttribute('data-dark'); themeBtn.textContent = '🌙 다크'; }
+  else    { document.body.setAttribute('data-dark',''); themeBtn.textContent = '☀️ 라이트'; }
+});
+
+/* ─────────────────────────────────────────
+   토스트 메시지
+───────────────────────────────────────── */
+const toastEl = document.getElementById('toast');
+function showToast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  setTimeout(() => toastEl.classList.remove('show'), 2400);
+}
+
+/* ─────────────────────────────────────────
+   연결 로직 (PeerJS 송신자)
+   - 학생 기기는 임시 Peer를 만들고, 교무실 코드(ID)로 연결합니다.
+───────────────────────────────────────── */
+const dot        = document.getElementById('dot');
+const statusText = document.getElementById('statusText');
+const connectBtn = document.getElementById('connectBtn');
+const codeInput  = document.getElementById('codeInput');
+const connectCard= document.getElementById('connectCard');
+const callCard   = document.getElementById('callCard');
+const callBtns   = document.querySelectorAll('.call-btn');
+
+let conn = null; // 교무실과의 데이터 연결 통로
+
+// "연결" 버튼 클릭
+connectBtn.addEventListener('click', () => {
+  const code = codeInput.value.trim();
+  if (!code) { showToast('호출 코드를 먼저 입력하세요'); return; }
+  startConnect(code);
+});
+// 엔터 키로도 연결 가능
+codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') connectBtn.click(); });
+
+function startConnect(code) {
+  connectBtn.disabled = true;
+  statusText.textContent = '연결 중...';
+
+  // 학생 기기의 임시 Peer 생성 (ID는 PeerJS가 자동 부여)
+  const myPeer = new Peer();
+
+  myPeer.on('open', () => {
+    // 교무실 코드(receive.html 에서 생성한 ID)로 연결 시도
+    conn = myPeer.connect(code, { reliable: true });
+
+    conn.on('open', () => {
+      // 연결 성공
+      dot.classList.add('on');
+      statusText.textContent = '교무실과 연결됨 ✓';
+      connectCard.classList.add('hidden');
+      callCard.classList.remove('hidden');
+      // 버튼 활성화
+      callBtns.forEach(b => b.disabled = false);
+    });
+
+    conn.on('error', () => {
+      statusText.textContent = '연결 실패 — 코드가 맞는지, 교무실 화면이 켜져 있는지 확인하세요.';
+      connectBtn.disabled = false;
+    });
+
+    // 연결이 끊기면 상태 안내
+    conn.on('close', () => {
+      dot.classList.remove('on');
+      showToast('연결이 끊겼습니다. 페이지를 새로고침하세요.');
+      callBtns.forEach(b => b.disabled = true);
+    });
+  });
+
+  myPeer.on('error', () => {
+    statusText.textContent = '오류 — 코드를 확인하거나 새로고침 후 다시 시도하세요.';
+    connectBtn.disabled = false;
+  });
+}
+
+/* ─────────────────────────────────────────
+   호출 항목 버튼 클릭 → 교무실로 전송
+───────────────────────────────────────── */
+const sentMsg = document.getElementById('sentMsg');
+
+callBtns.forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    if (!conn || !conn.open) { showToast('연결이 끊겼습니다. 새로고침 후 다시 연결하세요.'); return; }
+
+    // 잔물결(ripple) 시각 효과
+    const r = document.createElement('span');
+    r.className = 'ripple';
+    const rect = this.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`;
+    this.appendChild(r);
+    setTimeout(() => r.remove(), 600);
+
+    // 교무실로 항목명 전송
+    conn.send(btn.dataset.item);
+
+    // 완료 메시지 표시
+    sentMsg.textContent = `'${btn.dataset.item}' 호출을 보냈습니다 ✓`;
+    sentMsg.classList.add('show');
+    setTimeout(() => sentMsg.classList.remove('show'), 3000);
+  });
+});
+
+/* ─────────────────────────────────────────
+   URL 파라미터로 코드가 전달된 경우 자동 연결
+   (receive.html 이 생성하는 링크 형식: index.html?code=room-xxxx)
+───────────────────────────────────────── */
+const autoCode = new URLSearchParams(location.search).get('code');
+if (autoCode) {
+  codeInput.value = autoCode;
+  startConnect(autoCode);
+}
+</script>
+</body>
+</html>
