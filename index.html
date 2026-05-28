@@ -59,7 +59,7 @@
 
   /* ────── 헤더 ────── */
   header{
-    width:100%;max-width:640px;
+    width:100%;max-width:1100px;
     display:flex;justify-content:space-between;align-items:flex-start;
     margin-bottom:28px;
   }
@@ -81,9 +81,38 @@
 
   /* ────── 카드 ────── */
   .card{
-    width:100%;max-width:640px;
+    width:100%;max-width:1100px;
     background:var(--card);border:1px solid var(--line);
     border-radius:var(--r-lg);padding:28px;margin-bottom:14px;
+  }
+
+  /* ────── 연결 전 코드 입력 카드: 좁게 ────── */
+  #cardConnect{ max-width:640px; }
+
+  /* ────── 연결 후 STEP2+STEP3 나란히 배치 ────── */
+  #mainArea{
+    width:100%;max-width:1100px;
+    display:grid;
+    grid-template-columns:1fr 1fr;   /* 선생님 명단 | 호출 목적 */
+    gap:16px;
+    align-items:start;               /* 높이가 다를 때 상단 정렬 */
+  }
+  /* 태블릿 세로 모드에서는 1열로 */
+  @media(max-width:700px){
+    #mainArea{ grid-template-columns:1fr; }
+  }
+  /* mainArea 안의 카드는 margin 제거 (gap이 대신) */
+  #mainArea .card{ margin-bottom:0; max-width:none; }
+
+  /* ────── 선생님 선택 전 STEP3 비활성 상태 ────── */
+  #cardCall[data-inactive]{
+    opacity:.42;
+    pointer-events:none;
+    user-select:none;
+  }
+  #cardCall[data-inactive] .step-label::after{
+    content:' — 선생님을 먼저 선택하세요';
+    font-size:.75rem;font-weight:500;letter-spacing:0;opacity:.8;
   }
 
   /* ────── STEP 라벨 ────── */
@@ -218,7 +247,7 @@
   .hidden{display:none!important;}
 
   /* ────── 카드 등장 애니메이션 ────── */
-  .card{animation:cardIn .4s cubic-bezier(.16,1,.3,1) backwards;}
+  .card, #mainArea{animation:cardIn .4s cubic-bezier(.16,1,.3,1) backwards;}
   @keyframes cardIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
 
   /* 태블릿 세로 모드 최적화 */
@@ -253,25 +282,30 @@
   </p>
 </div>
 
-<!-- STEP 2: 선생님 명단 (키오스크 사이즈) -->
-<div class="card hidden" id="cardTeacher">
-  <span class="step-label">STEP 2 · 선생님 선택</span>
-  <div class="teacher-grid" id="teacherGrid"></div>
-</div>
+<!-- 연결 후: STEP2 + STEP3 나란히 (처음에는 hidden) -->
+<div id="mainArea" class="hidden">
 
-<!-- STEP 3: 호출 목적 (키오스크 사이즈) -->
-<div class="card hidden" id="cardCall">
-  <span class="step-label">STEP 3 · 호출 목적 선택</span>
-  <div class="call-grid">
-    <button class="call-btn" data-item="상담"    disabled><span class="icon">💬</span><span class="lbl">상담</span></button>
-    <button class="call-btn" data-item="서류 제출" disabled><span class="icon">📄</span><span class="lbl">서류 제출</span></button>
-    <button class="call-btn" data-item="출석 확인" disabled><span class="icon">✅</span><span class="lbl">출석 확인</span></button>
-    <button class="call-btn" data-item="질문"    disabled><span class="icon">❓</span><span class="lbl">질문</span></button>
-    <button class="call-btn" data-item="서명"    disabled><span class="icon">✍️</span><span class="lbl">서명</span></button>
-    <button class="call-btn" data-item="기타"    disabled><span class="icon">📢</span><span class="lbl">기타</span></button>
+  <!-- STEP 2: 선생님 명단 -->
+  <div class="card" id="cardTeacher">
+    <span class="step-label">STEP 2 · 선생님 선택</span>
+    <div class="teacher-grid" id="teacherGrid"></div>
   </div>
-  <div class="sent-msg" id="sentMsg"></div>
-  <button class="btn-reset hidden" id="resetBtn">↩ 처음으로 돌아가기 (다음 학생)</button>
+
+  <!-- STEP 3: 호출 목적 (선생님 선택 전 비활성, 선택 후 활성) -->
+  <div class="card" id="cardCall" data-inactive>
+    <span class="step-label">STEP 3 · 호출 목적 선택</span>
+    <div class="call-grid">
+      <button class="call-btn" data-item="상담"    disabled><span class="icon">💬</span><span class="lbl">상담</span></button>
+      <button class="call-btn" data-item="서류 제출" disabled><span class="icon">📄</span><span class="lbl">서류 제출</span></button>
+      <button class="call-btn" data-item="출석 확인" disabled><span class="icon">✅</span><span class="lbl">출석 확인</span></button>
+      <button class="call-btn" data-item="질문"    disabled><span class="icon">❓</span><span class="lbl">질문</span></button>
+      <button class="call-btn" data-item="서명"    disabled><span class="icon">✍️</span><span class="lbl">서명</span></button>
+      <button class="call-btn" data-item="기타"    disabled><span class="icon">📢</span><span class="lbl">기타</span></button>
+    </div>
+    <div class="sent-msg" id="sentMsg"></div>
+    <button class="btn-reset hidden" id="resetBtn">↩ 처음으로 돌아가기 (다음 학생)</button>
+  </div>
+
 </div>
 
 <div class="toast" id="toast"></div>
@@ -379,16 +413,17 @@ function buildTeacherButtons(teachers) {
       document.querySelectorAll('.teacher-btn').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
       selectedTeacher = name;
-      document.getElementById('cardCall').classList.remove('hidden');
+      // STEP3 활성화: data-inactive 제거 + 버튼 활성화
+      document.getElementById('cardCall').removeAttribute('data-inactive');
       document.querySelectorAll('.call-btn').forEach(b => b.disabled = false);
-      document.getElementById('cardCall').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
     grid.appendChild(btn);
   });
-  document.getElementById('cardTeacher').classList.remove('hidden');
-  // 연결 후 STEP 1 카드는 접어두기 (공간 확보)
-  // 단, 코드 입력 카드는 남겨두되 status는 그대로 두는 게 일관성 있음.
-  statusText.textContent = '연결됨 ✓ 선생님을 선택하세요.';
+
+  // STEP 1 숨기기 + STEP 2·3 한 화면에 표시
+  document.getElementById('cardConnect').classList.add('hidden');
+  document.getElementById('mainArea').classList.remove('hidden');
+  statusText.textContent = '연결됨 ✓';
 }
 
 /* ═══════════════════════════════════════════
@@ -427,16 +462,17 @@ document.querySelectorAll('.call-btn').forEach(btn => {
   });
 });
 
-// 선생님 선택 단계로 되돌리기 (연결은 유지)
+// 선생님 선택 단계로 되돌리기 (연결·mainArea 유지)
 function resetToTeacherSelect() {
   if (sentTimer) { clearTimeout(sentTimer); sentTimer = null; }
   selectedTeacher = null;
   sentMsg.classList.remove('show');
   resetBtn.classList.add('hidden');
-  document.getElementById('cardCall').classList.add('hidden');
+  // STEP3 버튼 비활성화 + 비활성 상태 복원
+  document.querySelectorAll('.call-btn').forEach(b => b.disabled = true);
+  document.getElementById('cardCall').setAttribute('data-inactive', '');
+  // 선생님 선택 해제
   document.querySelectorAll('.teacher-btn').forEach(b => b.classList.remove('selected'));
-  document.querySelectorAll('.call-btn').forEach(b => b.disabled = false);
-  document.getElementById('cardTeacher').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 resetBtn.addEventListener('click', () => {
